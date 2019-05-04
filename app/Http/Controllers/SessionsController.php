@@ -3,30 +3,37 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
 use Auth;
 
-class SessionsController extends Controller
+class UsersController extends Controller
 {
     public function create()
     {
-        return view('sessions.create');
+        return view('users.create');
+    }
+
+    public function show(User $user)
+    {
+        return view('users.show', compact('user'));
     }
 
     public function store(Request $request)
     {
-       $credentials = $this->validate($request, [
-           'email' => 'required|email|max:255',
-           'password' => 'required'
-       ]);
+        $this->validate($request, [
+            'name' => 'required|max:50',
+            'email' => 'required|email|unique:users|max:255',
+            'password' => 'required|confirmed|min:6'
+        ]);
 
-       if (Auth::attempt($credentials)) {
-           session()->flash('success', '欢迎回来！');
-           return redirect()->route('users.show', [Auth::user()]);
-       } else {
-           session()->flash('danger', '很抱歉，您的邮箱和密码不匹配');
-           return redirect()->back()->withInput();
-       }
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+        ]);
 
-       return;
+        Auth::login($user);
+        session()->flash('success', '欢迎，您将在这里开启一段新的旅程~');
+        return redirect()->route('users.show', [$user]);
     }
 }
